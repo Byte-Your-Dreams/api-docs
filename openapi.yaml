@@ -1,0 +1,778 @@
+swagger: "2.0"
+info:
+  description: ""
+  title: OpenAPI definition
+  version: 1.0.0
+host: 0.0.0.0:8000
+basePath: /
+schemes:
+  - http
+consumes:
+  - application/json
+  - application/vnd.pgrst.object+json;nulls=stripped
+  - application/vnd.pgrst.object+json
+  - text/csv
+produces:
+  - application/json
+  - application/vnd.pgrst.object+json;nulls=stripped
+  - application/vnd.pgrst.object+json
+  - text/csv
+paths:
+  /auth/v1/token:
+    post:
+      summary: Login utente
+      description: Effettua il login anonimo o con email e password in base al parametro grant_type.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: grant_type
+          in: query
+          required: true
+          type: string
+          enum: [anonymous, password]
+          description: Tipo di grant per il login.
+        - in: body
+          name: credentials
+          required: false
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+      responses:
+        "200":
+          description: Accesso riuscito
+          schema:
+            $ref: '#/definitions/AuthTokenResponse'
+        "400":
+          description: Richiesta non valida
+      tags:
+        - Auth
+  /rest/v1/messaggio:
+    post:
+      parameters:
+        - $ref: '#/parameters/chat'
+        - $ref: '#/parameters/domanda'
+      responses:
+        "201":
+          description: Created
+      tags:
+        - messaggio
+  /rest/v1/get_all_conversations:
+    get:
+      parameters:
+        - $ref: '#/parameters/rowFilter.get_all_conversations.utente'
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/get_all_conversations'
+            type: array
+        "206":
+          description: Partial Content
+      tags:
+        - get_all_conversations
+  /rest/v1/rpc/get_messages_per_week:
+    post:
+      parameters:
+        - in: body
+          name: args
+          required: true
+          schema:
+            type: object
+        - $ref: '#/parameters/preferParams'
+      produces:
+        - application/json
+        - application/vnd.pgrst.object+json;nulls=stripped
+        - application/vnd.pgrst.object+json
+      responses:
+        "200":
+          description: OK
+      tags:
+        - (rpc) get_messages_per_week
+  /rest/v1/rpc/get_number_of_feedbacks:
+    post:
+      parameters:
+        - in: body
+          name: args
+          required: true
+          schema:
+            type: object
+        - $ref: '#/parameters/preferParams'
+      produces:
+        - application/json
+        - application/vnd.pgrst.object+json;nulls=stripped
+        - application/vnd.pgrst.object+json
+      responses:
+        "200":
+          description: OK
+      tags:
+        - (rpc) get_number_of_feedbacks
+  /rest/v1/rpc/get_number_of_feedback_messages:
+    post:
+      parameters:
+        - in: body
+          name: args
+          required: true
+          schema:
+            type: object
+        - $ref: '#/parameters/preferParams'
+      produces:
+        - application/json
+        - application/vnd.pgrst.object+json;nulls=stripped
+        - application/vnd.pgrst.object+json
+      responses:
+        "200":
+          description: OK
+      tags:
+        - (rpc) get_number_of_feedback_messages
+  /functions/v1/analyzeMessage:
+    post:
+      summary: Analizza i messaggi e restituisce statistiche sulle parole
+      description: Calcola il numero medio di parole e la frequenza delle parole in un messaggio.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        "200":
+          description: Risposta con le statistiche del messaggio
+          schema:
+            $ref: '#/definitions/AnalyzeMessageResponse'
+      tags:
+        - analyzeMessage
+  
+definitions:
+  AnalyzeMessageResponse:
+      type: object
+      properties:
+        averageWords:
+          type: number
+          format: float
+          description: Numero medio di parole per messaggio
+        wordCounts:
+          type: array
+          description: Lista delle parole con il relativo conteggio
+          items:
+            type: object
+            properties:
+              word:
+                type: string
+                description: La parola analizzata
+              count:
+                type: integer
+                description: Numero di occorrenze della parola
+  chat:
+    required:
+      - id
+      - utente
+    properties:
+      id:
+        default: extensions.uuid_generate_v4()
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+        format: uuid
+        type: string
+      utente:
+        format: uuid
+        type: string
+      createdat:
+        default: CURRENT_TIMESTAMP
+        format: timestamp without time zone
+        type: string
+    type: object
+  prodotto_manuale:
+    required:
+      - prodotto
+      - manuale
+    properties:
+      prodotto:
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+          This is a Foreign Key to `prodotto.id`.<fk table='prodotto' column='id'/>
+        format: text
+        type: string
+      manuale:
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+          This is a Foreign Key to `manuale.link`.<fk table='manuale' column='link'/>
+        format: text
+        type: string
+    type: object
+  messaggio:
+    required:
+      - id
+      - chat
+      - domanda
+    properties:
+      id:
+        default: extensions.uuid_generate_v4()
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+        format: uuid
+        type: string
+      chat:
+        description: |-
+          Note:
+          This is a Foreign Key to `chat.id`.<fk table='chat' column='id'/>
+        format: uuid
+        type: string
+      domanda:
+        format: text
+        type: string
+      risposta:
+        format: text
+        type: string
+      createdat:
+        default: CURRENT_TIMESTAMP
+        format: timestamp without time zone
+        type: string
+      feedback_check:
+        format: bit
+        maxLength: 1
+        type: string
+      feedback_text:
+        format: text
+        type: string
+    type: object
+  prodotto:
+    required:
+      - id
+      - nome
+      - descrizione
+      - etim
+    properties:
+      id:
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+        format: text
+        type: string
+      nome:
+        format: text
+        type: string
+      descrizione:
+        format: text
+        type: string
+      etim:
+        format: jsonb
+    type: object
+  get_all_conversations:
+    properties:
+      id:
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+        format: uuid
+        type: string
+      utente:
+        format: uuid
+        type: string
+      createdat:
+        format: timestamp without time zone
+        type: string
+      messages:
+        format: json[]
+        items: {}
+        type: array
+    type: object
+  qea:
+    required:
+      - prodotto
+      - domanda
+      - risposta
+    properties:
+      prodotto:
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+          This is a Foreign Key to `prodotto.id`.<fk table='prodotto' column='id'/>
+        format: text
+        type: string
+      domanda:
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+        format: text
+        type: string
+      domanda_embedding:
+        format: public.vector(768)
+        type: string
+      risposta:
+        format: text
+        type: string
+    type: object
+  manuale_percorso:
+    properties:
+      link:
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+        format: text
+        type: string
+      nome:
+        format: text
+        type: string
+      updated:
+        format: boolean
+        type: boolean
+      storage_object_id:
+        format: uuid
+        type: string
+      storage_object_path:
+        format: text
+        type: string
+    type: object
+  manuale_sezione:
+    required:
+      - manuale
+      - nchunk
+      - contenuto
+    properties:
+      manuale:
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+          This is a Foreign Key to `manuale.link`.<fk table='manuale' column='link'/>
+        format: text
+        type: string
+      nchunk:
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+        format: integer
+        type: integer
+      contenuto:
+        format: text
+        type: string
+      embedding:
+        format: public.vector(1024)
+        type: string
+      fts:
+        format: tsvector
+        type: string
+    type: object
+  manuale:
+    required:
+      - link
+      - nome
+    properties:
+      link:
+        description: |-
+          Note:
+          This is a Primary Key.<pk/>
+        format: text
+        type: string
+      nome:
+        format: text
+        type: string
+      updated:
+        default: true
+        format: boolean
+        type: boolean
+      storage_object_id:
+        format: uuid
+        type: string
+    type: object
+parameters:
+  chat:
+    name: Chat
+    in: query
+    description: id della chat
+    type: string
+    
+  utente:
+    name: Utente
+    in: query
+    type: string
+  domanda:
+    name: Domanda
+    in: query
+    description: domanda
+    type: string
+  preferParams:
+    name: Prefer
+    description: Preference
+    required: false
+    enum:
+      - params=single-object
+    in: header
+    type: string
+  preferReturn:
+    name: Prefer
+    description: Preference
+    required: false
+    enum:
+      - return=representation
+      - return=minimal
+      - return=none
+    in: header
+    type: string
+  preferCount:
+    name: Prefer
+    description: Preference
+    required: false
+    enum:
+      - count=none
+    in: header
+    type: string
+  preferPost:
+    name: Prefer
+    description: Preference
+    required: false
+    enum:
+      - return=representation
+      - return=minimal
+      - return=none
+      - resolution=ignore-duplicates
+      - resolution=merge-duplicates
+    in: header
+    type: string
+  select:
+    name: select
+    description: Filtering Columns
+    required: false
+    in: query
+    type: string
+  on_conflict:
+    name: on_conflict
+    description: On Conflict
+    required: false
+    in: query
+    type: string
+  order:
+    name: order
+    description: Ordering
+    required: false
+    in: query
+    type: string
+  range:
+    name: Range
+    description: Limiting and Pagination
+    required: false
+    in: header
+    type: string
+  rangeUnit:
+    name: Range-Unit
+    description: Limiting and Pagination
+    required: false
+    default: items
+    in: header
+    type: string
+  offset:
+    name: offset
+    description: Limiting and Pagination
+    required: false
+    in: query
+    type: string
+  limit:
+    name: limit
+    description: Limiting and Pagination
+    required: false
+    in: query
+    type: string
+  body.chat:
+    name: chat
+    description: chat
+    required: false
+    in: body
+    schema:
+      $ref: '#/definitions/chat'
+  rowFilter.chat.id:
+    name: id
+    required: false
+    format: uuid
+    in: query
+    type: string
+  rowFilter.chat.utente:
+    name: utente
+    required: false
+    format: uuid
+    in: query
+    type: string
+  rowFilter.chat.createdat:
+    name: createdat
+    required: false
+    format: timestamp without time zone
+    in: query
+    type: string
+  body.prodotto_manuale:
+    name: prodotto_manuale
+    description: prodotto_manuale
+    required: false
+    in: body
+    schema:
+      $ref: '#/definitions/prodotto_manuale'
+  rowFilter.prodotto_manuale.prodotto:
+    name: prodotto
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.prodotto_manuale.manuale:
+    name: manuale
+    required: false
+    format: text
+    in: query
+    type: string
+  body.messaggio:
+    name: messaggio
+    description: messaggio
+    required: false
+    in: body
+    schema:
+      $ref: '#/definitions/messaggio'
+  rowFilter.messaggio.id:
+    name: id
+    required: false
+    format: uuid
+    in: query
+    type: string
+  rowFilter.messaggio.chat:
+    name: chat
+    required: false
+    format: uuid
+    in: query
+    type: string
+  rowFilter.messaggio.domanda:
+    name: domanda
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.messaggio.risposta:
+    name: risposta
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.messaggio.createdat:
+    name: createdat
+    required: false
+    format: timestamp without time zone
+    in: query
+    type: string
+  rowFilter.messaggio.feedback_check:
+    name: feedback_check
+    required: false
+    format: bit
+    in: query
+    type: string
+  rowFilter.messaggio.feedback_text:
+    name: feedback_text
+    required: false
+    format: text
+    in: query
+    type: string
+  body.prodotto:
+    name: prodotto
+    description: prodotto
+    required: false
+    in: body
+    schema:
+      $ref: '#/definitions/prodotto'
+  rowFilter.prodotto.id:
+    name: id
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.prodotto.nome:
+    name: nome
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.prodotto.descrizione:
+    name: descrizione
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.prodotto.etim:
+    name: etim
+    required: false
+    format: jsonb
+    in: query
+    type: string
+  body.get_all_conversations:
+    name: get_all_conversations
+    description: get_all_conversations
+    required: false
+    in: body
+    schema:
+      $ref: '#/definitions/get_all_conversations'
+  rowFilter.get_all_conversations.id:
+    name: id
+    required: false
+    format: uuid
+    in: query
+    type: string
+  rowFilter.get_all_conversations.utente:
+    name: utente
+    required: false
+    format: uuid
+    in: query
+    type: string
+  rowFilter.get_all_conversations.createdat:
+    name: createdat
+    required: false
+    format: timestamp without time zone
+    in: query
+    type: string
+  rowFilter.get_all_conversations.messages:
+    name: messages
+    required: false
+    format: json[]
+    in: query
+    type: string
+  body.qea:
+    name: qea
+    description: qea
+    required: false
+    in: body
+    schema:
+      $ref: '#/definitions/qea'
+  rowFilter.qea.prodotto:
+    name: prodotto
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.qea.domanda:
+    name: domanda
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.qea.domanda_embedding:
+    name: domanda_embedding
+    required: false
+    format: public.vector(768)
+    in: query
+    type: string
+  rowFilter.qea.risposta:
+    name: risposta
+    required: false
+    format: text
+    in: query
+    type: string
+  body.manuale_percorso:
+    name: manuale_percorso
+    description: manuale_percorso
+    required: false
+    in: body
+    schema:
+      $ref: '#/definitions/manuale_percorso'
+  rowFilter.manuale_percorso.link:
+    name: link
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.manuale_percorso.nome:
+    name: nome
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.manuale_percorso.updated:
+    name: updated
+    required: false
+    format: boolean
+    in: query
+    type: string
+  rowFilter.manuale_percorso.storage_object_id:
+    name: storage_object_id
+    required: false
+    format: uuid
+    in: query
+    type: string
+  rowFilter.manuale_percorso.storage_object_path:
+    name: storage_object_path
+    required: false
+    format: text
+    in: query
+    type: string
+  body.manuale_sezione:
+    name: manuale_sezione
+    description: manuale_sezione
+    required: false
+    in: body
+    schema:
+      $ref: '#/definitions/manuale_sezione'
+  rowFilter.manuale_sezione.manuale:
+    name: manuale
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.manuale_sezione.nchunk:
+    name: nchunk
+    required: false
+    format: integer
+    in: query
+    type: string
+  rowFilter.manuale_sezione.contenuto:
+    name: contenuto
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.manuale_sezione.embedding:
+    name: embedding
+    required: false
+    format: public.vector(1024)
+    in: query
+    type: string
+  rowFilter.manuale_sezione.fts:
+    name: fts
+    required: false
+    format: tsvector
+    in: query
+    type: string
+  body.manuale:
+    name: manuale
+    description: manuale
+    required: false
+    in: body
+    schema:
+      $ref: '#/definitions/manuale'
+  rowFilter.manuale.link:
+    name: link
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.manuale.nome:
+    name: nome
+    required: false
+    format: text
+    in: query
+    type: string
+  rowFilter.manuale.updated:
+    name: updated
+    required: false
+    format: boolean
+    in: query
+    type: string
+  rowFilter.manuale.storage_object_id:
+    name: storage_object_id
+    required: false
+    format: uuid
+    in: query
+    type: string
+externalDocs:
+  description: PostgREST Documentation
+  url: https://postgrest.org/en/v12.2/api.html
