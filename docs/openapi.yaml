@@ -130,22 +130,6 @@ paths:
             $ref: '#/definitions/get_number_of_feedback_messages_Response'
       tags:
         - (rpc) get_number_of_feedback_messages
-  /functions/v1/analyzeMessage:
-    post:
-      summary: Analizza i messaggi e restituisce statistiche sulle parole
-      description: Calcola il numero medio di parole e la frequenza delle parole in un messaggio.
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters: []
-      responses:
-        "200":
-          description: Risposta con le statistiche del messaggio
-          schema:
-            $ref: '#/definitions/AnalyzeMessageResponse'
-      tags:
-        - analyzeMessage
   /rest/v1/rpc/get_feedbacks:
     post:
       summary: Ottieni i feedback con risposta e testo
@@ -176,6 +160,22 @@ paths:
               $ref: '#/definitions/GetFeedbacksResponse'
       tags:
         - (rpc) get_feedbacks
+  /functions/v1/analyzeMessage:
+    post:
+      summary: Analizza i messaggi e restituisce statistiche sulle parole
+      description: Calcola il numero medio di parole e la frequenza delle parole in un messaggio.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        "200":
+          description: Risposta con le statistiche del messaggio
+          schema:
+            $ref: '#/definitions/AnalyzeMessageResponse'
+      tags:
+        - analyzeMessage
 
 definitions:
   AuthTokenResponse:
